@@ -31,6 +31,7 @@ public void login(String username, String password) { ... }
 示例：每 60 秒允许用户登录接口最多 5 次，超出后抛出异常。
 
 2. 熔断注解 @CircuitBreaker
+```
 @CircuitBreaker(
     key = "remote_service_call",
     failureThreshold = 0.5,
@@ -40,29 +41,29 @@ public void login(String username, String password) { ... }
     fallbackMethod = "fallbackHandler"
 )
 public String callRemoteService() { ... }
+```
 
 参数说明
-参数	类型	必选	含义
-key	String	可选	熔断唯一标识，如果不填，默认使用方法签名。
-failureThreshold	double	必填	失败率阈值（0~1），超过该比例则触发熔断。
-minimumRequest	int	必填	最少请求数，低于该请求数不进行熔断判断。
-window	int	必填	统计失败率的时间窗口（秒）。
-resetTimeout	int	必填	熔断触发后，经过该时间（秒）自动尝试半开状态。
-fallbackMethod	String	可选	当熔断触发时调用的回退方法名称。
+| 参数 | 类型 | 必选 | 含义|
+|----------|----------|----------|----------|
+|key|	String|	可选|	熔断唯一标识，如果不填，默认使用方法签名|
+|failureThreshold|	double|	必填|	失败率阈值（0~1），超过该比例则触发熔断|
+|minimumRequest|	int|	必填|	最少请求数，低于该请求数不进行熔断判断|
+|window|	int|	必填|	统计失败率的时间窗口（秒）|
+|resetTimeout|	int|	必填|	熔断触发后，经过该时间（秒）自动尝试半开状态|
+|fallbackMethod|	String|	可选|	当熔断触发时调用的回退方法名称|
 
 示例：当 60 秒内某服务请求失败率超过 50%，且请求数超过 10 个时，触发熔断，30 秒后尝试半开状态，如果仍失败则继续熔断。
 
-核心设计
+## 核心设计
 
-分布式计数器：通过 Redis + Lua 原子操作实现请求计数，保证多实例环境下限流一致性。
-
-注解 + AOP 拦截：通过 Spring AOP 在方法执行前进行限流和熔断判断，业务代码无需修改。
-
-熔断逻辑：记录方法调用成功/失败次数，根据阈值触发熔断，并可指定回退方法。
-
-Lua 脚本：保证限流计数的原子性，同时支持可配置的时间窗口。
+1. 分布式计数器：通过 Redis + Lua 原子操作实现请求计数，保证多实例环境下限流一致性。
+2. 注解 + AOP 拦截：通过 Spring AOP 在方法执行前进行限流和熔断判断，业务代码无需修改。
+3. 熔断逻辑：记录方法调用成功/失败次数，根据阈值触发熔断，并可指定回退方法。
+4. Lua 脚本：保证限流计数的原子性，同时支持可配置的时间窗口。
 
 示例项目
+```
 @RestController
 public class UserController {
 
@@ -78,8 +79,8 @@ public class UserController {
         return "服务暂不可用，请稍后再试";
     }
 }
-
-使用建议
+```
+## 使用建议
 
 限流适用于高并发接口、用户敏感操作等场景。
 
