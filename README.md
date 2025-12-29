@@ -14,7 +14,7 @@ Aegis Gate 是一个基于 Spring Boot 的分布式限流与熔断中间件，�
     <artifactId>aegis-gate</artifactId>
     <version>1.0-SNAPSHOT</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/aegis-gate-1.0-SNAPSHOT.jar</systemPath>
+    <systemPath>${project.basedir}/libs/aegis-gate-0.1.0.jar</systemPath>
 </dependency>
 ```
 
@@ -29,7 +29,7 @@ system 范围表示使用本地 Jar，不会从远程仓库下载。
 在 build.gradle 中添加依赖：
 ```
 dependencies {
-    implementation files('libs/aegis-gate-1.0-SNAPSHOT.jar')
+    implementation files('libs/aegis-gate-0.1.0.jar')
 }
 ```
 
