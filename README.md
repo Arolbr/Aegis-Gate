@@ -2,6 +2,52 @@
 
 Aegis Gate 是一个基于 Spring Boot 的分布式限流与熔断中间件，旨在帮助 Java 微服务项目轻松实现请求限流、熔断保护，支持 Redis + Lua 的分布式计数器，适用于高并发场景。
 
+## 依赖导入
+### Maven 项目
+
+**将 Jar 包放入项目的 libs/ 目录（可自定义路径）**
+
+在 pom.xml 中添加如下依赖配置：
+```
+<dependency>
+    <groupId>com.lihuazou</groupId>
+    <artifactId>aegis-gate</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/libs/aegis-gate-1.0-SNAPSHOT.jar</systemPath>
+</dependency>
+```
+
+${project.basedir} 表示项目根目录。
+
+system 范围表示使用本地 Jar，不会从远程仓库下载。
+
+### Gradle 项目
+
+将 Jar 包放入 libs/ 目录(同样的也可以自定义路径)
+
+在 build.gradle 中添加依赖：
+```
+dependencies {
+    implementation files('libs/aegis-gate-1.0-SNAPSHOT.jar')
+}
+```
+
+Jar 包引入后，你就可以在项目中直接使用中间件提供的注解和功能，例如：
+```
+import com.lihuazou.aegisgate.annotation.RateLimit;
+
+@RestController
+public class DemoController {
+
+    @RateLimit(maxRequests = 5, window = 60, message = "请求过于频繁")
+    @GetMapping("/test")
+    public String test() {
+        return "成功访问";
+    }
+}
+```
+
 ## 功能概述
 1. 分布式限流：支持基于 Redis 的全局限流，保证多实例环境下的一致性。
 2. 熔断保护：支持方法调用失败率统计，超过阈值自动触发熔断。
