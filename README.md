@@ -12,9 +12,15 @@ Aegis Gate 是一个基于 Spring Boot 的分布式限流与熔断中间件，�
 <dependency>
     <groupId>com.lihuazou</groupId>
     <artifactId>aegis-gate</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <scope>system</scope>
     <systemPath>${project.basedir}/libs/aegis-gate-0.1.0.jar</systemPath>
+</dependency>
+
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.9.22</version>
 </dependency>
 ```
 
@@ -22,31 +28,77 @@ ${project.basedir} 表示项目根目录。
 
 system 范围表示使用本地 Jar，不会从远程仓库下载。
 
-### Gradle 项目
+依赖引入后需要在 SpringBoot 项目的启动类中添加注解``` @ComponentScan ```扫描中间包
 
-将 Jar 包放入 libs/ 目录(同样的也可以自定义路径)
+``` @ComponentScan({"org.example", "com.lihuazou.aegisgate"}) ```
 
-在 build.gradle 中添加依赖：
-```
-dependencies {
-    implementation files('libs/aegis-gate-0.1.0.jar')
-}
-```
 
 Jar 包引入后，你就可以在项目中直接使用中间件提供的注解和功能，例如：
 ```
+package org.example.controller;
+
+import com.lihuazou.aegisgate.annotation.CircuitBreaker;
+import org.example.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.lihuazou.aegisgate.annotation.RateLimit;
 
-@RestController
-public class DemoController {
+import java.math.BigDecimal;
+import java.util.Random;
 
-    @RateLimit(maxRequests = 5, window = 60, message = "请求过于频繁")
-    @GetMapping("/test")
-    public String test() {
-        return "成功访问";
+@RestController
+@RequestMapping("/test")
+public class TestController {
+
+    @GetMapping("/test01")
+    @RateLimit(
+            key = "test01",
+            maxRequests = 2,
+            window = 60
+    )
+    public void test01(@RequestParam String userId, @RequestParam BigDecimal price) {
+        System.out.println("test01触发");
+    }
+
+    @GetMapping("/test02")
+    @CircuitBreaker(
+            key = "test02",
+            window = 60,
+            resetTimeout = 30,
+            fallbackMethod = "test03"
+    )
+    public String test02(@RequestParam String monthlyId, @RequestParam BigDecimal price) {
+        Random random = new Random();
+        if (random.nextInt(10) + 1 > 5){
+            int a = 5/0; // 模拟异常
+        }
+        return "success";
+    }
+
+    // 熔断回退方法
+    public String test03(String monthlyId, BigDecimal price){
+        System.out.println("熔断回退方法触发");
+        return "fallback";
     }
 }
+
 ```
+注意: 
+回退方法的参数参数数量和类型必须与原方法匹配,因为 AOP 通过反射调用回退方法时，会把原方法的参数直接传给它，如果类型或数量不一致，就会抛 NoSuchMethodException
+
+可以少用参数吗?
+一般不行，除非你的回退方法是无参方法，而你在 AOP 中做了额外适配逻辑，但中间件默认实现是直接反射调用，所以必须匹配
+
+返回值要求: 
+返回值类型必须兼容
+最好完全一样
+或者是父类/接口类型兼容也行，比如原方法返回 ArrayList，回退方法返回 List 类型也能兼容
+如果返回值类型不兼容，AOP 调用会报 ClassCastException
+
+方法访问修饰符必须 public，否则 AOP 拦截器无法反射调用
 
 ## 功能概述
 1. 分布式限流：支持基于 Redis 的全局限流，保证多实例环境下的一致性。
