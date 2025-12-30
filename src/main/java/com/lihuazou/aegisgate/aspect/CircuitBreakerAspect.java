@@ -28,19 +28,27 @@ public class CircuitBreakerAspect {
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         CircuitBreaker cb = method.getAnnotation(CircuitBreaker.class);
 
-        String key = "circuit_breaker:" + method.getDeclaringClass().getName() + "#" + method.getName();
+        String key = cb.key().isEmpty()
+                ? "circuit_breaker:" + method.getDeclaringClass().getName() + "#" + method.getName()
+                : "circuit_breaker:" + cb.key();
 
-        boolean allowed;
         try {
             Object result = joinPoint.proceed();
             // 成功调用
-            allowed = executor.tryExecute(key, cb.failureThreshold(), cb.window(), cb.openTime(), false);
+            executor.tryExecute(key, cb.failureThreshold(), cb.minimumRequest(),
+                    cb.window(), cb.resetTimeout(), false);
             return result;
         } catch (Exception e) {
             // 失败调用
-            allowed = executor.tryExecute(key, cb.failureThreshold(), cb.window(), cb.openTime(), true);
+            boolean allowed = executor.tryExecute(key, cb.failureThreshold(), cb.minimumRequest(),
+                    cb.window(), cb.resetTimeout(), true);
             if (!allowed) {
                 log.warn("触发熔断，key={}", key);
+                // 调用回退方法
+                if (!cb.fallbackMethod().isEmpty()) {
+                    Method fallback = method.getDeclaringClass().getMethod(cb.fallbackMethod(), method.getParameterTypes());
+                    return fallback.invoke(joinPoint.getTarget(), joinPoint.getArgs());
+                }
                 throw new CircuitBreakerException(cb.message());
             }
             throw e;
