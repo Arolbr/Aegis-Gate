@@ -160,24 +160,7 @@ public String callRemoteService() { ... }
 3. 熔断逻辑：记录方法调用成功/失败次数，根据阈值触发熔断，并可指定回退方法。
 4. Lua 脚本：保证限流计数的原子性，同时支持可配置的时间窗口。
 
-示例项目
-```
-@RestController
-public class UserController {
 
-    @RateLimit(key = "login", maxRequests = 5, window = 60)
-    @CircuitBreaker(failureThreshold = 0.5, minimumRequest = 10, window = 60, resetTimeout = 30)
-    @GetMapping("/login")
-    public String login(String username, String password) {
-        // 模拟业务逻辑
-        return "登录成功";
-    }
-
-    public String fallbackHandler() {
-        return "服务暂不可用，请稍后再试";
-    }
-}
-```
 ## 使用建议
 
 限流适用于高并发接口、用户敏感操作等场景。
